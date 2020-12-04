@@ -1,13 +1,12 @@
 import requests
-from sqlalchemy import create_engine, Table, Column, String, Float, MetaData
-from sqlalchemy.sql import select
+from Database import Database as db
 
 
 class WeatherProvider:
     def __init__(self, key):
         self.key = key
 
-    def get_data(self, location, start_date, end_date):
+    def get(self, location, start_date, end_date):
         url = 'https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/weatherdata/history'
         params = {
             'aggregateHours': 24,
@@ -31,23 +30,16 @@ class WeatherProvider:
         ]
 
 
-engine = create_engine('sqlite:///weather.sqlite3')
-metadata = MetaData()
-weather = Table(
-    'weather',
-    metadata,
-    Column('date', String),
-    Column('mint', Float),
-    Column('maxt', Float),
-    Column('location', String),
-    Column('humidity', Float),
-)
-metadata.create_all(engine)
 
-c = engine.connect()
+database = db('sqlite:///weather.sqlite3')
+database.addTable('weather', date='string', mint='float', maxt='float', location='string', humidity='float')
+database.createBase()
 
-provider = WeatherProvider('I3D60I88UB6KPSDAVGK38HNP5')
-c.execute(weather.insert(), provider.get_data('Volgograd,Russia', '2020-09-20', '2020-09-29'))
+provider = WeatherProvider('373QC5VVYP15RYE4BWGAIXRXY')
+data=provider.get('Volgograd,Russia', '2020-09-20', '2020-09-29')
+if not database.insert('weather',data):
+    print("Error") 
+    exit(1)
 
-for row in c.execute(select([weather])):
+for row in database.select('weather'):
     print(row)
