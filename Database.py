@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, Table, Column, String, Float, MetaData
 from sqlalchemy.sql import select
+from sqlalchemy.pool import SingletonThreadPool
 
 def getAlcTypeFromTypename(typename):
     typename=typename.lower()
@@ -11,18 +12,18 @@ def getAlcTypeFromTypename(typename):
         return None
 
 
+
 class Database:
 
     def __init__(self, connection):
-        self.engine=create_engine(connection)
-        self.meta=MetaData()
-        self.tables={}
-        self.base=None
+        self.engine=create_engine(connection, connect_args={'check_same_thread': False})
+        self.meta=MetaData()        
+        self.base=self.engine.connect()
 
     def addTable(self, tableName, **cols):
-        self.tables[tableName]=Table(tableName, self.meta)
+        Table(tableName, self.meta)
         for name,Type in cols.items():
-            self.tables[tableName].append_column(Column(name,getAlcTypeFromTypename(Type)))
+            self.meta.tables[tableName].append_column(Column(name,getAlcTypeFromTypename(Type)))
         pass
 
 
@@ -37,22 +38,39 @@ class Database:
         if data == None:
             return False
         try:
-            data=self.base.execute(self.tables[tableName].insert(),data)
+            data=self.base.execute(self.meta.tables[tableName].insert(),data)
         except:
             return False
         else:
             return True
         
 
-    def select(self, tableName, *columns):
-        data = None
+    def selectAll(self, tableName):
+        data = None       
         try:
-            data=self.base.execute(select([self.tables[tableName]]))
+            data=self.base.execute(select([self.meta.tables[tableName]]))
         except:
             return None
         else:
             return data
 
+    def selectWeatherByLocation(self,location):
+        data = None       
+        table=self.meta.tables["weather"]
+        try:
+            data=self.base.execute(select([table]).where(table.c.location==location))
+        except:
+            return None
+        else:
+            return data
+
+    def checkDateInBase(self, date, location):
+        table=self.meta.tables["weather"]     
+        a=self.base.execute(select([table]).where(table.c.date==date and table.c.location==location)).first()
+        if a == None:
+           return True
+        else:
+           return False
 
     def getTables(self):
-        return self.tables
+        return self.meta.tables
