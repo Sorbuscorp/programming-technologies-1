@@ -12,6 +12,7 @@ jedi = "*"
 [packages]
 requests = "*"
 sqlalchemy = "*"
+matplotlib = "*"
 
 [requires]
 python_version = "3.8"

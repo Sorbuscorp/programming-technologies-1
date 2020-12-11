@@ -38,10 +38,11 @@ class Database:
         if data == None:
             return False
         try:
-            data=self.base.execute(self.meta.tables[tableName].insert(),data)
+            self.base.execute(self.meta.tables[tableName].insert(),data)
         except:
             return False
         else:
+            print("added:{}".format(data))
             return True
         
 

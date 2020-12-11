@@ -43,8 +43,7 @@ class OpenWeatherProvider:
             'q': location,
             'appid': self.key,
         }
-        data = requests.get(url, params).json()
-        
+        data = requests.get(url, params).json()        
         return {
                 'date': datetime.fromtimestamp( data["dt"]).strftime('%Y-%m-%d %H:%M:%S'),
                 'mint': data["main"]["temp_min"],
@@ -60,17 +59,20 @@ class OpenWeatherProvider:
 
 class DataUpdater(Thread):
     def __init__(self, db, updateTime, location='Volgograd,Russia'):
-        Thread.__init__(self)
+        Thread.__init__(self,daemon=True)
         self.db = db
         self.time = updateTime
         self.location=location
+        self.isUpdated=False
 
     
     def run(self):
         provider = OpenWeatherProvider()
-        while True:
+        while True:           
             data=provider.get(self.location)
+            
             if self.db.checkDateInBase(data["date"], data["location"]):
                 self.db.insert('weather',data)
+                self.isUpdated=True
             time.sleep(self.time)
     
